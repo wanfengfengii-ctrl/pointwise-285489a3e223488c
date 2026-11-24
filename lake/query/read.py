@@ -1,3 +1,4 @@
+from lake.query.interval import mirror_interval
 from lake.query.reconcile import reconcile_account
 from lake.query.rows import assemble_rows
 from lake.query.scope import normalize_request

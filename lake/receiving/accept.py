@@ -1,11 +1,15 @@
 from lake.dispatch.wire import encode_package
+from lake.dispatch.interval import payload_kind
 from lake.receiving.inventory import find_package, record_package
+from lake.receiving.interval import receive_interval
 from lake.receiving.package_checks import check_package
 from lake.receiving.receipt import PackageConflict
 from lake.receiving.store import receiving_transaction
 
 
 def receive(db, payload):
+    if payload_kind(payload) == 'interval':
+        return receive_interval(db, payload)
     package = check_package(payload)
     sealed = encode_package(package)
     with receiving_transaction(db):

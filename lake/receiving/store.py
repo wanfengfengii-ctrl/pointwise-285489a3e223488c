@@ -21,6 +21,20 @@ def initialize_mirror(db):
             receiving_id INTEGER NOT NULL REFERENCES mirror_packages(receiving_id),
             PRIMARY KEY (lake_id, day, partition, checkpoint)
         )''')
+        # Fixed-interval pieces have their own type and identity, distinct from
+        # the slice projections above, and live side by side in one mirror.
+        db.execute('''CREATE TABLE IF NOT EXISTS mirror_intervals (
+            receiving_id INTEGER PRIMARY KEY,
+            package_id TEXT NOT NULL UNIQUE,
+            lake_id TEXT NOT NULL,
+            day TEXT NOT NULL,
+            start_revision INTEGER NOT NULL,
+            end_revision INTEGER NOT NULL,
+            partition TEXT NOT NULL,
+            payload BLOB NOT NULL
+        )''')
+        db.execute('''CREATE INDEX IF NOT EXISTS mirror_interval_lookup
+            ON mirror_intervals (lake_id, day, partition)''')
 
 
 def open_mirror(path):

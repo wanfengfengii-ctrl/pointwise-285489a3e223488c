@@ -26,8 +26,10 @@ python3 -B demo.py
 | 提交更正 | `lake.ledger.corrections.correct(db, correction_id, parent_revision, target, *, partition=None, mm=...)` | `OfficialReceipt` |
 | 查源账 | `lake.ledger.history.source_read(db, revision, partitions)` | `SourceAccount` |
 | 发行 | `lake.dispatch.publish.publish(db, receipt)` | `ReleaseRecord`，`release.part(name)` 领取分区件字节 |
-| 镜像实收 | `lake.receiving.accept.receive(mirror, payload)` | `ReceivingReceipt` |
+| 发行区间件 | `lake.dispatch.publish.publish_interval(db, start, end, partitions)` | `dict[str, bytes]`，键为所请求分区，按名称排序 |
+| 镜像实收 | `lake.receiving.accept.receive(mirror, payload)` | `ReceivingReceipt`；切面件与区间件共用此入口 |
 | 镜像查账 | `lake.query.read.mirror_read(mirror, receipt, partitions)` | 状态为 `ready` 的 `MirrorAccount` 或状态为 `pending` 的 `PendingMaterials` |
+| 镜像区间核账 | `lake.query.read.mirror_interval(mirror, start, end, partitions)` | `pending`、`unresolvable` 或 `ready` 的逐笔更正账 |
 
 收件 `rows` 为非空有序序列。每行提供 `observation`、`partition`、`source`、`line`、`unit` 和 `mm`。观测名在批内唯一。批号、湖号、分区、观测名和更正号使用 1–80 个 ASCII 字母、数字、点、下划线或连字符，以字母或数字开头。`source` 为非空可打印的出处字符串，`line` 为从 1 开始的源记录位置。单位为 `mm`。`mm` 接受 Python 整数，含零和负值，`None` 表示显式缺测。布尔值、浮点值、其他单位和缺少 `mm` 的行均非法。样例 JSON 用 `null` 表示缺测。
 
@@ -40,3 +42,7 @@ python3 -B demo.py
 镜像从本地证据中选择达到回执下界的最早完整修订，并随核账结果给出请求回执和交账回执。合法形态的回执在证据不足时得到待件结果。待件仅含请求身份和范围。`samples/daily.json` 与 `samples/transfer.json` 的业务对照为东区 R 由 7 mm 转为西区 11 mm，西区先到时双区待件，北区仍报 5 mm，补齐后双区报 11 mm。
 
 非法日批抛出 `BatchRejected`，同号异参抛出其子类 `BatchConflict`。未知收件抛出 `ReceiptNotFound`。非法更正、未知修订、无效发行回执分别抛出 `CorrectionRejected`、`RevisionNotFound`、`PublicationRejected`。坏件抛出 `PackageRejected`，身份或投影冲突抛出其子类 `PackageConflict`。非法镜像请求抛出 `InvalidMirrorRequest`。SQLite 写入故障回滚当前办理并传播原异常。
+
+## 区间交接
+
+逐笔更正账由固定区间件承载，接口与样例见 `INTERVAL.md`。`publish_interval` 发行绑定湖号、观测日、分区和确切覆盖区间 `(start, end]` 的独立件；同一区间复领相同字节，后续正式修订不影响已冻结区间。区间件经 `receive` 实收，与切面件各有类型和身份、可共处一个镜像，接纳乱序、重叠、重投。`mirror_interval` 只用镜像已有材料核账：所查分区缺覆盖报 `pending`；覆盖齐全但旧账某更正的实际目标无法唯一判定时报 `unresolvable`；否则按正式修订升序给出去重后的逐笔更正、各区前后影响和毫米/缺测净变，普通入仓不计。新办更正的实目标随源账记录，旧账缺此记录时由修订差异唯一推断，推断不出即不可结清。

@@ -49,6 +49,6 @@ def correct(db, correction_id, parent_revision, target, *, partition=None, mm=_U
                 receipt = next_receipt(db, parent)
                 revision = OfficialRevision(receipt, parent_revision, 'correction',
                                             correction_id, affected)
-                save_revision(db, revision, rows)
+                save_revision(db, revision, rows, target=target)
                 return receipt
         raise CorrectionRejected('target observation does not exist at parent revision')

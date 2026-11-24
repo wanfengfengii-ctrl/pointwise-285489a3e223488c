@@ -29,6 +29,15 @@ def initialize_catalog(db):
             payload BLOB NOT NULL,
             PRIMARY KEY (release_id, partition)
         )''')
+        db.execute('''CREATE TABLE IF NOT EXISTS interval_catalog (
+            interval_id TEXT PRIMARY KEY,
+            lake_id TEXT NOT NULL,
+            day TEXT NOT NULL,
+            start_revision INTEGER NOT NULL,
+            end_revision INTEGER NOT NULL,
+            partition TEXT NOT NULL,
+            payload BLOB NOT NULL
+        )''')
 
 
 def find_release(db, receipt):
@@ -54,3 +63,16 @@ def read_release_parts(db, release_id):
         'SELECT partition, payload FROM release_parts WHERE release_id = ? ORDER BY partition',
         (release_id,),
     ))
+
+
+def find_interval(db, interval_id):
+    record = db.execute('SELECT payload FROM interval_catalog WHERE interval_id = ?',
+                        (interval_id,)).fetchone()
+    return None if record is None else record[0]
+
+
+def save_interval(db, interval_id, lake_id, day, start, end, partition, payload):
+    db.execute('''INSERT INTO interval_catalog
+        (interval_id, lake_id, day, start_revision, end_revision, partition, payload)
+        VALUES (?, ?, ?, ?, ?, ?, ?)''',
+               (interval_id, lake_id, day, start, end, partition, payload))

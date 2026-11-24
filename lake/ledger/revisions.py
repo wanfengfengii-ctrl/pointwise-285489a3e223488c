@@ -77,6 +77,13 @@ def initialize_ledger(db, lake_id, day):
             batch_id TEXT PRIMARY KEY REFERENCES intake_batches(batch_id),
             revision INTEGER NOT NULL UNIQUE REFERENCES official_revisions(revision)
         )''')
+        # Newly issued corrections record the actual observation they targeted.
+        # Legacy accounts created without this table leave the target to be inferred.
+        db.execute('''CREATE TABLE IF NOT EXISTS correction_targets (
+            revision INTEGER PRIMARY KEY REFERENCES official_revisions(revision),
+            batch_id TEXT NOT NULL,
+            observation TEXT NOT NULL
+        )''')
 
 
 def book_identity(db):
@@ -151,7 +158,13 @@ def correction_exists(db, correction_id):
                       (correction_id,)).fetchone() is not None
 
 
-def save_revision(db, revision, rows, *, posted_batch=None):
+def read_correction_target(db, revision):
+    record = db.execute('SELECT batch_id, observation FROM correction_targets WHERE revision = ?',
+                        (revision,)).fetchone()
+    return None if record is None else ObservationKey(record[0], record[1])
+
+
+def save_revision(db, revision, rows, *, posted_batch=None, target=None):
     number = revision.receipt.revision
     db.execute('''INSERT INTO official_revisions
         (revision, parent, operation_kind, operation_id, affected) VALUES (?, ?, ?, ?, ?)''',
@@ -166,3 +179,6 @@ def save_revision(db, revision, rows, *, posted_batch=None):
     ))
     if posted_batch is not None:
         db.execute('INSERT INTO posted_batches VALUES (?, ?)', (posted_batch, number))
+    if target is not None:
+        db.execute('INSERT INTO correction_targets VALUES (?, ?, ?)',
+                   (number, target.batch_id, target.observation))
