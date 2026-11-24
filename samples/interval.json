@@ -1,0 +1,13 @@
+{
+  "initial": "daily.json",
+  "corrections": [
+    {"parent": 1, "id": "west-missing", "target": ["morning", "R"], "change": {"partition": "west", "mm": null}},
+    {"parent": 2, "id": "back-east", "target": ["morning", "R"], "change": {"partition": "east", "mm": 7}},
+    {"parent": 3, "id": "same-reading", "target": ["morning", "R"], "change": {"mm": 7}}
+  ],
+  "ordinary_post": {
+    "batch_id": "afternoon",
+    "rows": [{"observation": "Z", "partition": "west", "source": "station-W/aug14", "line": 3, "unit": "mm", "mm": 13}]
+  },
+  "deliveries": [[2, 4, "west"], [3, 5, "east"], [1, 2, "east"], [1, 3, "east"], [1, 4, "north"], [1, 3, "west"], [2, 4, "west"], [4, 5, "west"]]
+}
